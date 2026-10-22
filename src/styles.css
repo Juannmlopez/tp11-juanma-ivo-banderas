@@ -60,3 +60,6 @@ button.ghost { background: transparent; color: var(--accent); border: 1px solid 
   list-style: none; background: var(--panel); border: 1px solid var(--muted); border-radius: 8px; }
 .suggestions li { padding: 8px 10px; border-radius: 6px; cursor: pointer; }
 .suggestions li:hover { background: var(--bg); }
+
+.revealed { color: var(--muted); font-size: .95rem; }
+.revealed strong { color: var(--accent); }

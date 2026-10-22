@@ -27,6 +27,25 @@ const toSpanish = (list) => {
   });
 };
 
+// Devuelve las pistas del país, de la más vaga a la más reveladora
+const getHints = (c) => {
+  const words = c.name.split(" ").length;
+  const masked = [...c.name]
+    .map((ch, i) => {
+      if (ch === " ") return "/";
+      if (ch === "-") return "-";
+      return i === 0 || i === c.name.length - 1 || i % 3 === 0 ? ch : "_";
+    })
+    .join(" ");
+
+  return [
+    `Tiene ${c.name.replace(/ /g, "").length} letras en ${words} ${words === 1 ? "palabra" : "palabras"}`,
+    `Empieza con "${c.name[0]}"`,
+    c.iso3 && `Su código de 3 letras es ${c.iso3}`,
+    `Pista final: ${masked}`,
+  ].filter(Boolean);
+};
+
 const pickRandom = (list, avoid) => {
   if (list.length < 2) return list[0] ?? null;
   let next;
@@ -52,6 +71,7 @@ export function GameProvider({ children }) {
   const [timeLeft, setTimeLeft] = useState(GAME_SECONDS);
   const [hints, setHints] = useState([]); // pistas reveladas para el país actual
   const [feedback, setFeedback] = useState(null); // { ok: boolean, text: string }
+  const [revealed, setRevealed] = useState(null); // país que se saltó (para mostrar "Era: ...")
   const [playerName, setPlayerName] = useState("");
   const [players, setPlayers] = useState(loadPlayers);
 
@@ -111,6 +131,7 @@ export function GameProvider({ children }) {
       setScore(0);
       setTimeLeft(GAME_SECONDS);
       setFeedback(null);
+      setRevealed(null);
       setCurrent((prev) => pickRandom(countries, prev));
       setHints([]);
       setStatus("playing");
@@ -136,24 +157,32 @@ export function GameProvider({ children }) {
     [status, current, nextCountry]
   );
 
-  // Pistas: cada una cuesta 2 puntos. Máximo 2 por país.
+  // Pistas: cada una cuesta 2 puntos.
   const useHint = useCallback(() => {
-    if (status !== "playing" || !current || hints.length >= 2) return;
-    const text =
-      hints.length === 0
-        ? `Tiene ${current.name.length} letras`
-        : `Empieza con "${current.name[0]}"`;
-    setHints((h) => [...h, text]);
+    if (status !== "playing" || !current) return;
+    const all = getHints(current);
+    if (hints.length >= all.length) return;
+    setHints((h) => [...h, all[hints.length]]);
     setScore((s) => s - 2);
   }, [status, current, hints]);
+
+  // Saltar: cuesta 1 punto y muestra cuál era la bandera
+  const skip = useCallback(() => {
+    if (status !== "playing" || !current) return;
+    setRevealed(current.name);
+    setScore((s) => s - 1);
+    setFeedback(null);
+    nextCountry();
+  }, [status, current, nextCountry]);
 
   const resetScore = useCallback(() => setScore(0), []);
   const clearFeedback = useCallback(() => setFeedback(null), []);
 
   const value = {
     countries, current, score, status, timeLeft, hints, feedback,
-    playerName, players,
-    guess, nextCountry, resetScore, startGame, useHint, clearFeedback,
+    playerName, players, revealed,
+    maxHints: current ? getHints(current).length : 0,
+    guess, nextCountry, resetScore, startGame, useHint, skip, clearFeedback,
     totalSeconds: GAME_SECONDS,
   };
 

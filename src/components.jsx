@@ -57,7 +57,7 @@ const norm = (t) =>
   t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 export function GuessForm() {
-  const { countries, guess, useHint, hints, feedback } = useGame();
+  const { countries, guess, useHint, skip, revealed, hints, maxHints, feedback } = useGame();
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -116,9 +116,24 @@ export function GuessForm() {
       </form>
 
       <div className="hint-row">
-        <button type="button" className="ghost" onClick={useHint} disabled={hints.length >= 2}>
+        <button type="button" className="ghost" onClick={useHint} disabled={hints.length >= maxHints}>
           Pedir pista (−2)
         </button>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => {
+            skip();
+            setText("");
+          }}
+        >
+          Saltar (−1)
+        </button>
+        {revealed && (
+          <span className="revealed">
+            Era: <strong>{revealed}</strong>
+          </span>
+        )}
         <ul className="hints">
           {hints.map((h) => (
             <li key={h}>{h}</li>
